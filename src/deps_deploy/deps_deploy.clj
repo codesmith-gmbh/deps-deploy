@@ -62,8 +62,11 @@
      :artifact-id (:artifactId tmp)
      :version (:version tmp)}))
 
-(defn- versioned-pom-filename [{:keys [version artifact-id]}]
-  (str artifact-id "-" version ".pom"))
+(defn- versioned-pom-filename [target-dir {:keys [version artifact-id]}]
+  (let [pom-filename (str artifact-id "-" version ".pom")]
+    (if target-dir
+      (str (io/file target-dir pom-filename))
+      pom-filename)))
 
 (defn mvn-coordinates [{:keys [group-id artifact-id version]}]
   [(symbol (str group-id "/" artifact-id)) version])
@@ -80,8 +83,8 @@
              [[:extension (extension f)
                :classifier (classifier version f)] f])))
 
-(defn all-artifacts [sign? {:keys [version] :as coordinates} artifact sign-key-id]
-  (let [pom (versioned-pom-filename coordinates)
+(defn all-artifacts [target-dir sign? {:keys [version] :as coordinates} artifact sign-key-id]
+  (let [pom (versioned-pom-filename target-dir coordinates)
         files [pom  artifact]
         signature-files (when sign? (sign! pom artifact sign-key-id))
         all-files (into files signature-files)]
@@ -214,23 +217,26 @@
   :sign-releases?  A boolean that specifies whether releases should be
                    signed
 
+  :target-dir A directory to work temporary files during the deployment
+
   "
   [options]
-  (let [{:keys [pom-file sign-releases? sign-key-id artifact] :as opts} (preprocess-options options)
+  (let [{:keys [pom-file sign-releases? sign-key-id artifact target-dir] :as opts} (preprocess-options options)
         pom (slurp (or pom-file "pom.xml"))
         coordinates (coordinates-from-pom pom)
         artifact (str artifact)
-        versioned-pom-filename (versioned-pom-filename coordinates)]
+        versioned-pom-filename (versioned-pom-filename target-dir coordinates)]
     (spit versioned-pom-filename pom)
 
     (try
       (deploy*
        (assoc opts
-              :artifact-map (all-artifacts sign-releases? coordinates artifact sign-key-id)
+              :artifact-map (all-artifacts target-dir sign-releases? coordinates artifact sign-key-id)
               :coordinates coordinates))
       (finally
-        (.delete (io/file versioned-pom-filename))
-        (.delete (io/file (str versioned-pom-filename ".asc")))))))
+        (when (nil? target-dir)
+          (.delete (io/file versioned-pom-filename))
+          (.delete (io/file (str versioned-pom-filename ".asc"))))))))
 
 
 ;; command line mode
