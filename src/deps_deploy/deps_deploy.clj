@@ -217,10 +217,11 @@
   "
   [options]
   (let [{:keys [pom-file sign-releases? sign-key-id artifact] :as opts} (preprocess-options options)
-         pom (slurp (or pom-file "pom.xml"))
-         coordinates (coordinates-from-pom pom)
-        artifact (str artifact)]
-    (spit (versioned-pom-filename coordinates) pom)
+        pom (slurp (or pom-file "pom.xml"))
+        coordinates (coordinates-from-pom pom)
+        artifact (str artifact)
+        versioned-pom-filename (versioned-pom-filename coordinates)]
+    (spit versioned-pom-filename pom)
 
     (try
       (deploy*
@@ -228,7 +229,8 @@
               :artifact-map (all-artifacts sign-releases? coordinates artifact sign-key-id)
               :coordinates coordinates))
       (finally
-        (.delete (java.io.File. (versioned-pom-filename coordinates)))))))
+        (.delete (io/file versioned-pom-filename))
+        (.delete (io/file (str versioned-pom-filename ".asc")))))))
 
 
 ;; command line mode
