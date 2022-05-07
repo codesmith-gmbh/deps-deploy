@@ -71,8 +71,8 @@
 (defn mvn-coordinates [{:keys [group-id artifact-id version]}]
   [(symbol (str group-id "/" artifact-id)) version])
 
-(defn sign! [pom jar-file sign-key-id]
-  (let [passphrase (gpg/read-passphrase)
+(defn sign! [pom jar-file batch-mode? sign-key-id]
+  (let [passphrase (when-not batch-mode? (gpg/read-passphrase))
         sign-op! (if sign-key-id 
                    (partial gpg/sign-with-key! sign-key-id)
                    (partial gpg/sign! passphrase))]
@@ -83,10 +83,10 @@
              [[:extension (extension f)
                :classifier (classifier version f)] f])))
 
-(defn all-artifacts [target-dir sign? {:keys [version] :as coordinates} artifact sign-key-id]
+(defn all-artifacts [target-dir sign? {:keys [version] :as coordinates} artifact gpg-batch-mode? sign-key-id]
   (let [pom (versioned-pom-filename target-dir coordinates)
         files [pom  artifact]
-        signature-files (when sign? (sign! pom artifact sign-key-id))
+        signature-files (when sign? (sign! pom artifact gpg-batch-mode? sign-key-id))
         all-files (into files signature-files)]
     (artifacts version all-files)))
 
@@ -217,11 +217,14 @@
   :sign-releases?  A boolean that specifies whether releases should be
                    signed
 
+  gpg-batch-mode?  A boolean that specifies whether to sign in batch mode
+                   (without asking for a password).
+
   :target-dir A directory to work temporary files during the deployment
 
   "
   [options]
-  (let [{:keys [pom-file sign-releases? sign-key-id artifact target-dir] :as opts} (preprocess-options options)
+  (let [{:keys [pom-file sign-releases? sign-key-id artifact target-dir gpg-batch-mode?] :as opts} (preprocess-options options)
         pom (slurp (or pom-file "pom.xml"))
         coordinates (coordinates-from-pom pom)
         artifact (str artifact)
@@ -231,7 +234,7 @@
     (try
       (deploy*
        (assoc opts
-              :artifact-map (all-artifacts target-dir sign-releases? coordinates artifact sign-key-id)
+              :artifact-map (all-artifacts target-dir sign-releases? coordinates artifact gpg-batch-mode? sign-key-id)
               :coordinates coordinates))
       (finally
         (when (nil? target-dir)
