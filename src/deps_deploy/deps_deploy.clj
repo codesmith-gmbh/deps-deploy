@@ -1,22 +1,19 @@
 (ns deps-deploy.deps-deploy
   (:require [cemerick.pomegranate.aether :as aether]
             [deps-deploy.gpg :as gpg]
-            [clojure.edn :as edn]
-            [clojure.pprint :as pp]
             [clojure.java.io :as io]
             [clojure.data.xml :as xml]
-            [clojure.tools.deps.alpha :as t])
+            [clojure.tools.deps.alpha :as t]
+            [clojure.tools.deps.alpha.util.dir :as dir])
   (:import [org.springframework.build.aws.maven
             PrivateS3Wagon SimpleStorageServiceWagon]
             ;; maven-core
-            [org.apache.maven.settings DefaultMavenSettingsBuilder Settings Server Mirror]
+           [org.apache.maven.settings DefaultMavenSettingsBuilder Settings Server]
             ;; maven-settings-builder
-            [org.apache.maven.settings.building DefaultSettingsBuilderFactory]))
-
+           [org.apache.maven.settings.building DefaultSettingsBuilderFactory]))
 
 (aether/register-wagon-factory! "s3p" #(PrivateS3Wagon.))
 (aether/register-wagon-factory! "s3" #(SimpleStorageServiceWagon.))
-
 
 (def default-repo-settings {"clojars" {:url (or (System/getenv "CLOJARS_URL") "https://clojars.org/repo")
                                        :username (System/getenv "CLOJARS_USERNAME")
@@ -73,7 +70,7 @@
 
 (defn sign! [pom jar-file batch-mode? sign-key-id]
   (let [passphrase (when-not batch-mode? (gpg/read-passphrase))
-        sign-op! (if sign-key-id 
+        sign-op! (if sign-key-id
                    (partial gpg/sign-with-key! sign-key-id)
                    (partial gpg/sign! passphrase))]
     [(sign-op! pom) (sign-op! jar-file)]))
@@ -123,8 +120,8 @@
   "Copied from clojure.tools.deps.alpha"
   ^Settings []
   (.buildSettings
-    (doto (DefaultMavenSettingsBuilder.)
-      (set-settings-builder (.newInstance (DefaultSettingsBuilderFactory.))))))
+   (doto (DefaultMavenSettingsBuilder.)
+     (set-settings-builder (.newInstance (DefaultSettingsBuilderFactory.))))))
 
 (defn- get-repo-settings
   [repo mvn-repos]
@@ -153,18 +150,18 @@
     (reduce-kv (fn [opts k v]
                  (cond
                    (and (not= :installer k) (keyword? v))
-                     (if (contains? aliases v)
-                       (assoc opts k (get aliases v))
-                       (do
-                         (println k "has value" v "which is an unknown alias")
-                         opts))
-                     (and (= :repository k) (string? v))
-                       (if-let [repo-map (get-repo-settings v mvn-repos)]
-                         (assoc opts k {v repo-map})
-                         (do
-                           (println k "has value" v "which is an unknown :mvn/repos")
-                           opts))
-                     :else opts))
+                   (if (contains? aliases v)
+                     (assoc opts k (get aliases v))
+                     (do
+                       (println k "has value" v "which is an unknown alias")
+                       opts))
+                   (and (= :repository k) (string? v))
+                   (if-let [repo-map (get-repo-settings v mvn-repos)]
+                     (assoc opts k {v repo-map})
+                     (do
+                       (println k "has value" v "which is an unknown :mvn/repos")
+                       opts))
+                   :else opts))
                options
                options)))
 
@@ -230,7 +227,6 @@
         artifact (str artifact)
         versioned-pom-filename (versioned-pom-filename target-dir coordinates)]
     (spit versioned-pom-filename pom)
-
     (try
       (deploy*
        (assoc opts
@@ -240,7 +236,6 @@
         (when (nil? target-dir)
           (.delete (io/file versioned-pom-filename))
           (.delete (io/file (str versioned-pom-filename ".asc"))))))))
-
 
 ;; command line mode
 (defn -main [deploy-or-install artifact & [sign-releases sign-key-id]]

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Deps: org.apache.maven.wagon/wagon-http-shared:3.5.2">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/maven/wagon/wagon-http-shared/3.5.2/wagon-http-shared-3.5.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
