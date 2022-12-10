@@ -222,7 +222,7 @@
   "
   [options]
   (let [{:keys [pom-file sign-releases? sign-key-id artifact target-dir gpg-batch-mode?] :as opts} (preprocess-options options)
-        pom (slurp (or pom-file "pom.xml"))
+        pom (slurp (dir/canonicalize (io/file (or pom-file "pom.xml"))))
         coordinates (coordinates-from-pom pom)
         artifact (str artifact)
         versioned-pom-filename (versioned-pom-filename target-dir coordinates)]
