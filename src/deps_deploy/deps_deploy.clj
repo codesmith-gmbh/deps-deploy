@@ -181,7 +181,8 @@
   (let [repository (or repository default-repo-settings)
         opts (assoc opts :repository repository)]
     (print-deploy-message opts)
-    (System/setProperty "aether.checksums.omitChecksumsForExtensions" "")
+    (java.lang.System/setProperty "aether.checksums.forSignature" "true")
+    (java.lang.System/setProperty "aether.checksums.omitChecksumsForExtensions" "")
     (aether/deploy :artifact-map artifact-map
                    :repository repository
                    :transfer-listener :stdout
