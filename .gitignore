@@ -84,4 +84,4 @@ pom.xml.asc
 
 # IntelliJ
 .idea
-
+*.iml
