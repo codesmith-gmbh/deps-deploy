@@ -81,3 +81,7 @@ pom.xml.asc
 # Calva and clojure-lsp
 .calva
 .lsp
+
+# IntelliJ
+.idea
+
