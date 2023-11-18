@@ -7,13 +7,13 @@
         org.clojure/tools.deps {:mvn/version "0.18.1354"}
         org.apache.maven/maven-settings {:mvn/version "3.9.4"}
         org.apache.maven/maven-settings-builder {:mvn/version "3.9.4"}
-        org.slf4j/slf4j-nop {:mvn/version "RELEASE"}
         org.sonatype.plexus/plexus-sec-dispatcher {:mvn/version "1.4"}}
 
  :aliases {:test {:extra-deps {io.github.cognitect-labs/test-runner
                               {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
                   :extra-paths ["test"]
                   :exec-fn cognitect.test-runner.api/test}
+           :dev {org.slf4j/slf4j-nop {:mvn/version "RELEASE"}}
 
            :mvn/artifact-id deps-deploy
            :mvn/group-id    slipset
